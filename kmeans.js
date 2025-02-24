@@ -1,5 +1,3 @@
-// kmeans.js
-
 let canvas = document.getElementById('canvas');
 let ctx = canvas.getContext('2d');
 
@@ -10,27 +8,33 @@ let k = 3;
 let colors = ['#FF6347', '#4CAF50', '#1E90FF', '#FFD700', '#8A2BE2'];
 let isClustersAssigned = false;
 
-// Event listeners for buttons
 document.getElementById('regeneratePoints').addEventListener('click', regeneratePoints);
 document.getElementById('chooseCentroids').addEventListener('click', chooseCentroids);
 document.getElementById('assignClusters').addEventListener('click', assignClusters);
+document.getElementById('recalculateCentroids').addEventListener('click', recalculateCentroids);
 canvas.addEventListener('click', predictPoint);
 canvas.addEventListener('touchstart', predictPointTouch);
 
-// Initialize with random points
 regeneratePoints();
 
-// Generate random points
+// Generate artificial clusters with more points
 function regeneratePoints() {
     points = [];
     centroids = [];
     clusters = [];
     isClustersAssigned = false;
 
-    for (let i = 0; i < 100; i++) {
+    let clusterCenters = [
+        { x: 150, y: 150 },
+        { x: 350, y: 250 },
+        { x: 200, y: 400 }
+    ];
+
+    for (let i = 0; i < 150; i++) {
+        let cluster = clusterCenters[i % clusterCenters.length];
         points.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height
+            x: cluster.x + Math.random() * 60 - 30,
+            y: cluster.y + Math.random() * 60 - 30
         });
     }
 
@@ -38,26 +42,20 @@ function regeneratePoints() {
     document.getElementById('status').innerText = "Points generated. Click 'Choose K Points' to select centroids.";
 }
 
-// Choose random initial centroids
+// Pick initial k points from existing points
 function chooseCentroids() {
     centroids = [];
     clusters = [];
     isClustersAssigned = false;
 
-    for (let i = 0; i < k; i++) {
-        let centroid = {
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height
-        };
-        centroids.push(centroid);
-        clusters.push([]);
-    }
+    let shuffledPoints = [...points].sort(() => Math.random() - 0.5);
+    centroids = shuffledPoints.slice(0, k);
 
     drawCanvas();
-    document.getElementById('status').innerText = "Centroids chosen. Click 'Assign Points to Clusters' to proceed.";
+    document.getElementById('status').innerText = "Centroids chosen from existing points. Click 'Assign Points to Clusters'.";
 }
 
-// Assign points to the nearest centroid
+// Assign points to the closest centroid
 function assignClusters() {
     clusters = Array.from({ length: k }, () => []);
 
@@ -79,10 +77,39 @@ function assignClusters() {
     isClustersAssigned = true;
     updateLegend();
     drawCanvas();
-    document.getElementById('status').innerText = "Points assigned to clusters. Click on the canvas to predict a point's cluster.";
+    document.getElementById('status').innerText = "Clusters assigned. Click 'Recalculate Centroids' to update means.";
 }
 
-// Predict the cluster of a clicked point
+// Recalculate centroids based on assigned points
+function recalculateCentroids() {
+    if (!isClustersAssigned) {
+        document.getElementById('status').innerText = "Assign clusters first!";
+        return;
+    }
+
+    let newCentroids = centroids.map((_, index) => {
+        let clusterPoints = clusters[index];
+        if (clusterPoints.length === 0) return centroids[index]; // Avoid empty cluster issue
+
+        let avgX = clusterPoints.reduce((sum, p) => sum + p.x, 0) / clusterPoints.length;
+        let avgY = clusterPoints.reduce((sum, p) => sum + p.y, 0) / clusterPoints.length;
+
+        return { x: avgX, y: avgY };
+    });
+
+    let centroidsChanged = centroids.some((c, i) => c.x !== newCentroids[i].x || c.y !== newCentroids[i].y);
+    centroids = newCentroids;
+
+    drawCanvas();
+
+    if (centroidsChanged) {
+        document.getElementById('status').innerText = "Centroids updated. Click 'Assign Points to Clusters' to reassign points.";
+    } else {
+        document.getElementById('status').innerText = "Centroids stabilized. K-means has converged!";
+    }
+}
+
+// Predict cluster for a clicked point
 function predictPoint(event) {
     let rect = canvas.getBoundingClientRect();
     let x = event.clientX - rect.left;
@@ -90,7 +117,7 @@ function predictPoint(event) {
     predictAndDrawPoint(x, y);
 }
 
-// Handle touch events for mobile
+// Handle touch input
 function predictPointTouch(event) {
     event.preventDefault();
     let rect = canvas.getBoundingClientRect();
@@ -100,7 +127,7 @@ function predictPointTouch(event) {
     predictAndDrawPoint(x, y);
 }
 
-// Predict and draw the selected point
+// Predict and mark the clicked point
 function predictAndDrawPoint(x, y) {
     let point = { x, y };
 
@@ -115,7 +142,6 @@ function predictAndDrawPoint(x, y) {
         }
     });
 
-    // Draw the predicted point
     ctx.fillStyle = colors[assignedCluster];
     ctx.beginPath();
     ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
@@ -128,7 +154,6 @@ function predictAndDrawPoint(x, y) {
 function drawCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw points (no color if clusters aren't assigned)
     points.forEach(point => {
         let clusterIndex = isClustersAssigned ? getClusterIndex(point) : -1;
         ctx.fillStyle = clusterIndex === -1 ? '#000' : colors[clusterIndex];
@@ -137,7 +162,6 @@ function drawCanvas() {
         ctx.fill();
     });
 
-    // Draw centroids
     centroids.forEach((centroid, index) => {
         ctx.fillStyle = colors[index];
         ctx.beginPath();
@@ -146,7 +170,7 @@ function drawCanvas() {
     });
 }
 
-// Get the cluster index that a point belongs to
+// Get cluster index for a given point
 function getClusterIndex(point) {
     let minDistance = Infinity;
     let assignedCluster = -1;
@@ -162,7 +186,7 @@ function getClusterIndex(point) {
     return assignedCluster;
 }
 
-// Update legend for clusters
+// Update legend with cluster colors
 function updateLegend() {
     let legend = document.getElementById('legend');
     legend.innerHTML = "";
