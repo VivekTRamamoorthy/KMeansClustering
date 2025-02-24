@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-means Clustering Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #canvas {
+            border: 1px solid black;
+            margin-bottom: 20px;
+        }
+        #controls {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .status {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        #legend {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+        }
+    </style>
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+    <h1>K-means Clustering Demo</h1>
+    <div id="controls">
+        <button id="regeneratePoints">Regenerate Points</button>
+        <button id="chooseCentroids">Choose K Points</button>
+        <button id="assignClusters">Assign Points to Clusters</button>
+        <button id="predictPoint">Predict Point's Cluster</button>
+    </div>
+
+    <canvas id="canvas" width="500" height="500"></canvas>
+
+    <div id="legend"></div>
+    <div class="status" id="status"></div>
+
+    <script src="kmeans.js"></script>
+</body>
+</html>
